@@ -8,9 +8,6 @@ from mongo_client import RaspMongoClient
 
 
 def main():
-
-    bd = RaspMongoClient(settings.mongo_connecting_string, settings.mongo_db_name)
-
     id_parser = GroupIdParser('https://rasp.guap.ru/')
     id_parser.run()
     lessons = []
@@ -23,10 +20,18 @@ def main():
             if lesson not in lessons:
                 lessons.append(lesson)
 
-    if settings.USE_DB:
-        Saver.save_to_mongo(lessons, bd, settings.mongo_collection_name)
-    else:
-        Saver.save_to_json(lessons, settings.json_path)
+    try:
+        bd = RaspMongoClient(settings.mongo_connecting_string, settings.mongo_db_name)
+        if settings.USE_DB:
+            Saver.save_to_mongo(lessons, bd, settings.mongo_collection_name)
+            loguru.logger.info(f'timetable successfully saved to mongoDB({settings.mongo_db_name}'
+                               f'.{settings.mongo_collection_name})')
+            bd.disconnect()
+        else:
+            Saver.save_to_json(lessons, settings.json_path)
+            loguru.logger.info(f'timetable successfully saved to json({settings.json_path}')
+    except Exception as _ex:
+        loguru.logger.error(_ex)
 
 
 if __name__ == '__main__':
